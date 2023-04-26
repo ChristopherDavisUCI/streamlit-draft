@@ -7,25 +7,21 @@ import pickle
 with open("draft-order.pickle", "rb") as f:
     draft_order = pickle.load(f)
 
-df_pre = pd.read_csv("draft2023c.csv")
+df_pre = pd.read_csv("draft2023b.csv")
 df_pre.index.name = "id"
 df_pre = df_pre.reset_index()
 df = df_pre.melt(id_vars=["source", "date", "author", "url", "id"], var_name="pick")
-df["value"] = df["value"].map(eval, na_action="ignore")
-df = df.dropna(axis=0).copy()
-df["date"] = pd.to_datetime(df["date"], format='%m/%d/%y')
+df["value"] = df["value"].map(eval)
+df["date"] = pd.to_datetime(df["date"])
 df[["team", "player", "pos", "sch", "conf"]] = pd.DataFrame(df["value"].tolist(), index=df.index)
 df["team"] = df["team"].map(lambda s: s.split("-")[-1].capitalize())
 df = df[df["team"].isin(draft_order)].copy()
 df["week"] = df["date"].dt.round("7D")
 df["ref"] = ["-".join(pair) for pair in df[["source", "author"]].values]
 
-ind = df["player"].value_counts().index
-
 player = st.selectbox(
     'What player are you interested in?',
-    ind,
-    index=ind.get_loc("Quentin Johnston"), )
+    df["player"].value_counts().index)
 
 use_all = st.checkbox('Use all drafts?', value=True)
 
@@ -43,7 +39,7 @@ df_temp = df[df["player"].str.contains(player)
               & df["ref"].isin(options)].copy()
 
 df_list = []
-for pick, df_mini in df_temp.groupby(["pick", "week"]):
+for team, df_mini in df_temp.groupby(["team", "week"]):
     ht = len(df_mini)
     df_mini["rank"] = range(1, ht+1)
     df_list.append(df_mini)
@@ -54,9 +50,9 @@ df_cat = df_cat.sort_values("week", ascending=False)
 chart_list = []
 for wk, df_mini in df_cat.groupby("week", sort=False):
     ch = alt.Chart(df_mini).mark_circle().encode(
-        x=alt.X("pick", scale=alt.Scale(domain=list(range(1,32)))),
+        x=alt.X("team", scale=alt.Scale(domain=draft_order)),
         y=alt.Y("rank:N", sort="descending", title=None),
-        tooltip=["source", "date", "author", "pick", "team"],
+        tooltip=["source", "date", "author", "pick"],
         href="url",
     ).properties(title=f"Week of {wk:%m-%d-%Y}")
     chart_list.append(ch)
