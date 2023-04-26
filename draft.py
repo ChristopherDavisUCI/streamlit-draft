@@ -11,6 +11,7 @@ df_pre = pd.read_csv("draft2023c.csv")
 df_pre.index.name = "id"
 df_pre = df_pre.reset_index()
 df = df_pre.melt(id_vars=["source", "date", "author", "url", "id"], var_name="pick")
+df["pick"] = df["pick"].astype(int)
 df["value"] = df["value"].map(eval, na_action="ignore")
 df = df.dropna(axis=0).copy()
 df["date"] = pd.to_datetime(df["date"], format='%m/%d/%y')
@@ -25,7 +26,7 @@ ind = df["player"].value_counts().index
 player = st.selectbox(
     'What player are you interested in?',
     ind,
-    index=ind.get_loc("Quentin Johnston"), )
+    index=ind.get_loc("Quentin Johnston"))
 
 use_all = st.checkbox('Use all drafts?', value=True)
 
@@ -54,11 +55,15 @@ df_cat = df_cat.sort_values("week", ascending=False)
 chart_list = []
 for wk, df_mini in df_cat.groupby("week", sort=False):
     ch = alt.Chart(df_mini).mark_circle().encode(
-        x=alt.X("pick", scale=alt.Scale(domain=list(range(1,32)))),
+        x=alt.X("pick"),
         y=alt.Y("rank:N", sort="descending", title=None),
         tooltip=["source", "date", "author", "pick", "team"],
         href="url",
     ).properties(title=f"Week of {wk:%m-%d-%Y}")
     chart_list.append(ch)
 
-st.altair_chart(alt.vconcat(*chart_list).configure_view(strokeOpacity=0))
+st.altair_chart(alt.vconcat(*chart_list).configure_view(
+    strokeOpacity=0
+).configure_axis(
+    grid=False
+))
