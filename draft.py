@@ -55,7 +55,8 @@ df_cat = df_cat.sort_values("week", ascending=False)
 chart_list = []
 for wk, df_mini in df_cat.groupby("week", sort=False):
     ch = alt.Chart(df_mini).mark_circle().encode(
-        x=alt.X("pick"),
+        x=alt.X("pick:O", scale=alt.Scale(domain=list(range(1,32))),
+                axis=alt.Axis(tickCount=31)),
         y=alt.Y("rank:N", sort="descending", title=None),
         tooltip=["source", "date", "author", "pick", "team"],
         href="url",
